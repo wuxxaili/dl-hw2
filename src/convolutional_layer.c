@@ -47,6 +47,39 @@ matrix im2col(image im, int size, int stride)
     int rows = im.c*size*size;
     int cols = outw * outh;
     matrix col = make_matrix(rows, cols);
+    int i,j,c,x,y;
+    if(size%2 == 1){
+        for (c = 0; c < im.c; ++c){
+            for(i = 0; i< size*size; ++i ){
+                 for (j = 0; j<cols; ++j){
+                     x = stride*(j/outw) + i/size - size/2;
+                     y = stride*(j%outw) + i%size - size/2;
+                     if(x < 0 || y < 0 || x >= im.w || y >= im.h){
+                         col.data[(i+size*size*c)*cols+j] = 0;
+                     }
+                     else{
+                         col.data[(i+size*size*c)*cols+j] = im.data[x+im.w*(y+im.h*c)];
+                     }
+                 }
+            }
+        }
+    }
+    else{
+        for (c = 0; c < im.c; ++c){
+            for(i = 0; i< size*size; ++i ){
+                for (j = 0; j<cols; ++j){
+                    x = stride*(j/outw) + i/size;
+                    y = stride*(j%outw) + i%size;
+                    if(x < 0 || y < 0 || x >= im.w || y >= im.h){
+                        col.data[(i+size*size*c)*cols+j] = 0;
+                    }
+                    else{
+                        col.data[(i+size*size*c)*cols+j] = im.data[x+im.w*(y+im.h*c)];
+                    }
+                }
+            }
+        }
+    }
 
     // TODO: 5.1 - fill in the column matrix
 
@@ -64,9 +97,30 @@ void col2im(matrix col, int size, int stride, image im)
     int outh = (im.h-1)/stride + 1;
     int rows = im.c*size*size;
     int cols = outw * outh;
-
     // TODO: 5.2 - add values into image im from the column matrix
-
+    int i,j,x,y,c;
+    if(size%2 == 1){
+        for(c = 0; c < im.c; ++c){
+            for(i = 0; i< size*size ; ++i){
+                for(j = 0;j < cols; ++j){
+                    x = stride*(j/outw) + i/size - size/2;
+                    y = stride*(j%outw) + i%size - size/2;
+                    im.data[x+im.w*(y+im.h*c)] += col.data[(i+size*size*c)*cols+j];
+                }
+            }
+        }
+    }
+    else{
+        for(c = 0; c < im.c; ++c){
+            for(i = 0; i< size*size ; ++i){
+                for(j = 0;j < cols; ++j){
+                    x = stride*(j/outw) + i/size;
+                    y = stride*(j%outw) + i%size;
+                    im.data[x+im.w*(y+im.h*c)] += col.data[(i+size*size*c)*cols+j];
+                }
+            }
+        }
+    }
 }
 
 // Run a convolutional layer on input
@@ -151,6 +205,13 @@ void backward_convolutional_layer(layer l, matrix prev_delta)
 void update_convolutional_layer(layer l, float rate, float momentum, float decay)
 {
     // TODO: 5.3 Update the weights, similar to the connected layer.
+    axpy_matrix(-decay,l.w,l.dw);
+    axpy_matrix(rate,l.dw,l.w);
+    
+    //axpy_matrix(-decay,l.b,l.db);
+    axpy_matrix(rate,l.db,l.b);
+    scal_matrix(momentum,l.dw);
+    scal_matrix(momentum,l.db);
 }
 
 // Make a new convolutional layer
